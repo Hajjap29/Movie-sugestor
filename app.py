@@ -49,12 +49,14 @@ genres = {
     'Western': 37
 }
 
-# Function to get movies by genre
-def get_movies_by_genre(genre_id, page=1):
+# Function to get movies by multiple genres
+def get_movies_by_genres(genre_ids, page=1):
     try:
+        # Join genre IDs with comma for TMDb API
+        genre_string = ','.join(map(str, genre_ids))
         url = f"{BASE_URL}/discover/movie"
         params = {
-            'with_genres': genre_id,
+            'with_genres': genre_string,
             'api_key': API_KEY,
             'language': 'en-US',
             'sort_by': 'popularity.desc',
@@ -94,11 +96,14 @@ st.divider()
 with st.sidebar:
     st.header("🎯 Filters")
     
-    # Genre selection
-    selected_genre = st.selectbox(
-        "Select Genre:",
+    # Multiple genre selection
+    st.subheader("Select up to 5 genres:")
+    selected_genres = st.multiselect(
+        "Choose your favorite genres:",
         options=list(genres.keys()),
-        index=0
+        default=['Action'],
+        max_selections=5,
+        help="Select 1-5 genres to find movies that match your preferences"
     )
     
     # Number of movies to display
@@ -106,7 +111,7 @@ with st.sidebar:
         "Number of movies to show:",
         min_value=3,
         max_value=20,
-        value=5,
+        value=10,
         step=1
     )
     
@@ -115,26 +120,31 @@ with st.sidebar:
     st.markdown("""
     ### 📖 About
     This app uses [The Movie Database (TMDb)](https://www.themoviedb.org/) API 
-    to suggest movies based on your preferred genre.
+    to suggest movies based on your preferred genres.
     
-    **Get your free API key:**
-    1. Sign up at [TMDb](https://www.themoviedb.org/)
-    2. Go to Settings → API
-    3. Request an API key
+    **Features:**
+    - Select up to 5 genres
+    - Find movies that match all selected genres
+    - Discover popular and highly-rated films
     """)
 
 # Main content
-if selected_genre:
-    genre_id = genres[selected_genre]
+if selected_genres:
+    # Get genre IDs for selected genres
+    genre_ids = [genres[genre] for genre in selected_genres]
+    genre_names = " + ".join(selected_genres)
+    
+    # Display selected genres
+    st.markdown(f"### 🎬 Selected Genres: **{genre_names}**")
     
     # Add a search button
     if st.button("🔍 Get Recommendations", type="primary", use_container_width=True):
-        with st.spinner(f"Finding {selected_genre} movies..."):
-            movies = get_movies_by_genre(genre_id)
+        with st.spinner(f"Finding movies with {genre_names}..."):
+            movies = get_movies_by_genres(genre_ids)
         
         if movies:
-            st.success(f"Found {len(movies)} {selected_genre} movies!")
-            st.markdown(f"### Top {min(num_movies, len(movies))} {selected_genre} Movies")
+            st.success(f"Found {len(movies)} movies matching your genres!")
+            st.markdown(f"### Top {min(num_movies, len(movies))} Movies")
             
             # Display movies
             for idx, movie in enumerate(movies[:num_movies], 1):
@@ -169,9 +179,9 @@ if selected_genre:
                 
                 st.divider()
         else:
-            st.warning(f"No {selected_genre} movies found. Please check your API key.")
+            st.warning(f"No movies found matching {genre_names}. Try selecting different genres!")
 else:
-    st.info("👈 Select a genre from the sidebar and click 'Get Recommendations' to start!")
+    st.info("👈 Select at least one genre from the sidebar and click 'Get Recommendations' to start!")
 
 # Footer
 st.divider()
